@@ -70,8 +70,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(final HttpSecurity http) throws Exception {
 
         // CSRF Enabled
-        http
-            .csrf();
+        http.csrf();
+
+        http.headers().frameOptions().disable();
 
         // If user auth is enabled
         if (appProperties.isUserAuthEnabled()) {
@@ -80,14 +81,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         } else {
             disableUserAuth(http);
         }
-        
+
         // If require SSL is enabled
         if (appProperties.isRequireSsl()) {
             // Ensure its enabled.
-            http
-                .requiresChannel()
-                .anyRequest()
-                .requiresSecure();
+            http.requiresChannel().anyRequest().requiresSecure();
         }
     }
 
@@ -112,6 +110,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     /**
      * Configures the app for LDAP authentication.
+     * 
      * @param auth Authentication builder for configuring LDAP.
      */
     private void setupLdapUserAuthentication(final AuthenticationManagerBuilder auth) throws Exception {
@@ -121,15 +120,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // Get password encoder instance
         final Class<? extends PasswordEncoder> encoderClass;
         try {
-            encoderClass = (Class<? extends PasswordEncoder>) getClass()
-                .getClassLoader()
-                .loadClass(ldapAppProperties.getPasswordEncoderClass());
+            encoderClass = (Class<? extends PasswordEncoder>) getClass().getClassLoader()
+                    .loadClass(ldapAppProperties.getPasswordEncoderClass());
         } catch (final ClassNotFoundException classNotFoundException) {
-            throw new RuntimeException(
-                "Unable to load class " + ldapAppProperties.getPasswordEncoderClass()
-                + " from configuration.  Make sure this class exists and implements PasswordEncoder interface!",
-                classNotFoundException
-            );
+            throw new RuntimeException("Unable to load class " + ldapAppProperties.getPasswordEncoderClass()
+                    + " from configuration.  Make sure this class exists and implements PasswordEncoder interface!",
+                    classNotFoundException);
         }
 
         String managerDn = null;
@@ -140,26 +136,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         }
 
         // Setup for ldap
-        auth
-            .ldapAuthentication()
-            .userDetailsContextMapper(new LdapUserDetailsService(ldapAppProperties))
-            .rolePrefix("")
-            .userDnPatterns(ldapAppProperties.getUserDnPattern())
-            .groupRoleAttribute(ldapAppProperties.getGroupRoleAttribute())
-            .groupSearchBase(ldapAppProperties.getGroupSearchBase())
-            .groupSearchFilter(ldapAppProperties.getGroupSearchFilter())
-            .contextSource()
-            .url(ldapAppProperties.getUrl())
-            .managerDn(managerDn)
-            .managerPassword(managerDnPassword)
-            .and()
-            .passwordCompare()
-            .passwordEncoder(encoderClass.getDeclaredConstructor().newInstance())
-            .passwordAttribute(ldapAppProperties.getPasswordAttribute());
+        auth.ldapAuthentication().userDetailsContextMapper(new LdapUserDetailsService(ldapAppProperties)).rolePrefix("")
+                .userDnPatterns(ldapAppProperties.getUserDnPattern())
+                .groupRoleAttribute(ldapAppProperties.getGroupRoleAttribute())
+                .groupSearchBase(ldapAppProperties.getGroupSearchBase())
+                .groupSearchFilter(ldapAppProperties.getGroupSearchFilter()).contextSource()
+                .url(ldapAppProperties.getUrl()).managerDn(managerDn).managerPassword(managerDnPassword).and()
+                .passwordCompare().passwordEncoder(encoderClass.getDeclaredConstructor().newInstance())
+                .passwordAttribute(ldapAppProperties.getPasswordAttribute());
     }
 
     /**
      * Sets up the app to authenticate from locally defined users in the database.
+     * 
      * @param auth Authentication builder for configuring LDAP.
      */
     private void setupLocalUserAuthentication(final AuthenticationManagerBuilder auth) throws Exception {
@@ -167,9 +156,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
         // Fall through to use local user management.
         auth
-            // Define our custom user details service.
-            .userDetailsService(new CustomUserDetailsService(userRepository))
-            .passwordEncoder(getPasswordEncoder());
+                // Define our custom user details service.
+                .userDetailsService(new CustomUserDetailsService(userRepository)).passwordEncoder(getPasswordEncoder());
     }
 
     /**
@@ -178,53 +166,40 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private void enableUserAuth(final HttpSecurity http) throws Exception {
         logger.info("Configuring with authenticated user access.");
 
-        http
-            .authorizeRequests()
-            // Paths to static resources are available to anyone
-            .antMatchers("/register/**", "/login/**", "/vendors/**", "/css/**", "/js/**", "/img/**")
-                .permitAll()
-            // Users can edit their own profile
-            .antMatchers("/configuration/user/edit/**", "/configuration/user/update")
-                .fullyAuthenticated()
-            // Define admin only paths
-            .antMatchers(
-                // Configuration
-                "/configuration/**",
+        http.authorizeRequests()
+                // Paths to static resources are available to anyone
+                .antMatchers("/register/**", "/login/**", "/vendors/**", "/css/**", "/js/**", "/img/**").permitAll()
+                // Users can edit their own profile
+                .antMatchers("/configuration/user/edit/**", "/configuration/user/update").fullyAuthenticated()
+                // Define admin only paths
+                .antMatchers(
+                        // Configuration
+                        "/configuration/**",
 
-                // Create topic
-                "/api/cluster/*/create/**",
+                        // Create topic
+                        "/api/cluster/*/create/**",
 
-                // Modify topic
-                "/api/cluster/*/modify/**",
+                        // Modify topic
+                        "/api/cluster/*/modify/**",
 
-                // Delete topic
-                "/api/cluster/*/delete/**",
+                        // Delete topic
+                        "/api/cluster/*/delete/**",
 
-                // Remove consumer group
-                "/api/cluster/*/consumer/remove"
+                        // Remove consumer group
+                        "/api/cluster/*/consumer/remove"
 
-            ).hasRole("ADMIN")
+                ).hasRole("ADMIN")
 
-            // All other requests must be authenticated
-            .anyRequest()
-                .fullyAuthenticated()
-            .and()
+                // All other requests must be authenticated
+                .anyRequest().fullyAuthenticated().and()
 
-            // Define how you login
-            .formLogin()
-            .loginPage("/login")
-            .usernameParameter("email")
-            .passwordParameter("password")
-            .failureUrl("/login?error=true")
-            .defaultSuccessUrl("/")
-            .permitAll()
-            .and()
+                // Define how you login
+                .formLogin().loginPage("/login").usernameParameter("email").passwordParameter("password")
+                .failureUrl("/login?error=true").defaultSuccessUrl("/").permitAll().and()
 
-            // And how you logout
-            .logout()
-            .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-            .logoutSuccessUrl("/login")
-            .permitAll();
+                // And how you logout
+                .logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/login")
+                .permitAll();
     }
 
     /**
@@ -237,16 +212,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         final CustomUserDetails customUserDetails = AnonymousUserDetailsService.getDefaultAnonymousUser();
 
         http
-            // All requests should require authorization as anonymous
-            .authorizeRequests()
-            .anyRequest()
-            .anonymous()
-            .and()
-            // And the user provider should always return our anonymous user instance
-            // with admin credentials.
-            .anonymous()
-            .principal(customUserDetails)
-            .authorities(new ArrayList<>(customUserDetails.getAuthorities()));
+                // All requests should require authorization as anonymous
+                .authorizeRequests().anyRequest().anonymous().and()
+                // And the user provider should always return our anonymous user instance
+                // with admin credentials.
+                .anonymous().principal(customUserDetails)
+                .authorities(new ArrayList<>(customUserDetails.getAuthorities()));
     }
 
     @Bean

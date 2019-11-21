@@ -17,7 +17,7 @@ spring:
 app:
   requireSsl: false
   user:
-    enabled: true
+    enabled: false
     ## Development server Ldap auth settings
     ldap:
       enabled: false

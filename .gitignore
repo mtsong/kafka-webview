@@ -9,3 +9,8 @@ kafka-webview-ui/src/test/resources/kafka.keystore.jks
 kafka-webview-ui/src/test/resources/kafka.truststore.jks
 dev-cluster/src/main/resources/kafka.keystore.jks
 dev-cluster/src/main/resources/kafka.truststore.jks
+.settings/
+.classpath
+.factorypath
+.project
+*.zip
